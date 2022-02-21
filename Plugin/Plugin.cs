@@ -11,12 +11,13 @@ namespace LordAshes
 {
     [BepInPlugin(Guid, Name, Version)]
     [BepInDependency(LordAshes.FileAccessPlugin.Guid)]
+    [BepInDependency(LordAshes.StatMessaging.Guid)]
     public partial class BodyAuraPlugin : BaseUnityPlugin
     {
         // Plugin info
         public const string Name = "Body Aura Plug-In";              
         public const string Guid = "org.lordashes.plugins.bodyaura";
-        public const string Version = "1.1.0.0";
+        public const string Version = "1.1.2.0";
 
         public string data = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
@@ -132,10 +133,11 @@ namespace LordAshes
             {
                 foreach (StatMessaging.Change change in changes)
                 {
-                    switch (change.action)
+                    StatMessaging.ChangeType action = (change.value == "" && change.action != StatMessaging.ChangeType.removed) ? StatMessaging.ChangeType.removed : change.action;
+                    switch (action)
                     {
                         case StatMessaging.ChangeType.removed:
-                            GameObject.Destroy(GameObject.Find(change.cid + ".BodyAura"));
+                            if (GameObject.Find(change.cid + ".BodyAura") != null) { GameObject.Destroy(GameObject.Find(change.cid + ".BodyAura")); }
                             break;
                         default:
                             CreatureBoardAsset asset = null;
@@ -148,22 +150,20 @@ namespace LordAshes
                     }
                 }
             }
-
         }
 
         IEnumerator BuildBodyAura(object[] inputs)
         {
-            SystemMessage.DisplayInfoText("Body Aura Plugin: Creating Body Aura...");
             yield return new WaitForSeconds(0.1f);
             string texName = (string)inputs[0];
             CreatureBoardAsset asset = (CreatureBoardAsset)inputs[1];
-            Debug.Log("Getting Shader");
+            Debug.Log("Body Aura Plugin: Getting Shader");
             AssetBundle assetBundle = FileAccessPlugin.AssetBundle.Load(data + "/siStandardAura");
             Shader shader = (Shader)assetBundle.LoadAsset<Shader>("siStandardAura");
             assetBundle.Unload(false);
             Debug.Log("Body Aura Plugin: Creating Aura Object");
-            GameObject aura = GameObject.Find(asset.Creature.CreatureId + ".BodyAura");
-            if (aura == null) { aura = new GameObject(); }
+            if (GameObject.Find(asset.Creature.CreatureId + ".BodyAura")!=null) { GameObject.Destroy(GameObject.Find(asset.Creature.CreatureId + ".BodyAura")); }
+            GameObject aura = new GameObject(); 
             aura.name = asset.Creature.CreatureId + ".BodyAura";
             aura.transform.localScale = asset.CreatureLoaders[0].transform.localScale * (asset.BaseRadius / baseMagicNumber);
             aura.transform.position = asset.CreatureLoaders[0].transform.position;
